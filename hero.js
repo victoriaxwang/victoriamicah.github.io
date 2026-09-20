@@ -246,7 +246,8 @@ function initHero() {
     // (document.getElementById('depth-tuner').style.display = 'block')
     // to keep tuning, or bake the current values back into the shader
     // as literals and delete the tuner entirely once truly settled. ---
-    uPanY: { value: 0.125 }, // global vertical camera pan, shared by bg + subject
+    uPanY: { value: 0.18 }, // global vertical camera pan, shared by bg + subject
+    uPointerYMult: { value: 0.5 }, // scales just the vertical half of mouse-driven parallax, shared by all layers
 
     uBgZoomBase: { value: 0.09 },
     uBgZoomNear: { value: 0.4 },
@@ -351,6 +352,7 @@ function initHero() {
       // TEMPORARY: tunable versions of the parallax constants — see the
       // uniforms block in initHero() and buildDepthTuner().
       uniform float uPanY;
+      uniform float uPointerYMult;
       uniform float uBgZoomBase;
       uniform float uBgZoomNear;
       uniform float uBgZoomThresh;
@@ -432,6 +434,7 @@ function initHero() {
 
         float dolly = clamp(uScroll, 0.0, 1.0) * uMotion; // crane-in amount
         float screenRatio = uRes.x / uRes.y;
+        vec2 ptr = vec2(uPointer.x, uPointer.y * uPointerYMult); // mouse parallax, y-magnitude scaled down separately from x
 
         // Saturation lifts steadily the whole way down. Darkening rolls
         // on back-to-front: the plate goes first and hardest, the
@@ -471,7 +474,7 @@ function initHero() {
         float bgZoom = 1.0 + dolly * depthZoomCoef(depth);
         vec2 bgSample = (bgUv - pivot) / bgZoom + pivot;
         bgSample += vec2(0.0, dolly * uBgDriftNear) * nearField
-                  + uPointer * uBgPointerAmt * uMotion * nearField;
+                  + ptr * uBgPointerAmt * uMotion * nearField;
         bgSample = clamp(bgSample, 0.0, 1.0);
 
         vec3 color = grade(texture2D(uBg, bgSample).rgb, bgDark, sat);
@@ -497,7 +500,7 @@ function initHero() {
           // slightly left-heavy. A little extra overlap onto "Micah" is
           // fine here.
           vec2 centre = vec2(0.52, uTitleCenterY);
-          vec2 drift = uPointer * uAmpPointerAmt * uMotion
+          vec2 drift = ptr * uAmpPointerAmt * uMotion
                      + vec2(0.0, dolly * uAmpDriftY);
           // Sits nearer than the background's own near-field ground
           // (saturates at 0.25) but behind the subjects (0.28) — must
@@ -517,7 +520,7 @@ function initHero() {
         if (uNameReady > 0.5) {
           vec2 spanWH = vec2(uNameSpanW, uNameSpanW / uNameAspect * screenRatio);
           vec2 centre = vec2(0.5, uTitleCenterY);
-          vec2 drift = uPointer * uNamePointerAmt * uMotion
+          vec2 drift = ptr * uNamePointerAmt * uMotion
                      + vec2(0.0, dolly * uNameDriftY);
           // Same mid-ground plane as the "&" — see grow note above.
           float grow = 1.0 + dolly * uNameGrow;
@@ -551,8 +554,8 @@ function initHero() {
                         + uSubjBoostAmt * smoothstep(uBgZoomThresh, uSubjBoostHi, sFeetDepth))
                         * uSubjZoomMult;
         float sGrow = 1.0 + dolly * sZoomCoef;
-        vec2 subjDrift = uPointer * uSubjPointerAmt * uMotion
-                       + vec2(0.0, dolly * uSubjDriftMult * sZoomCoef);
+        vec2 subjDrift = ptr * uSubjPointerAmt * uMotion
+                       + vec2(0.0, -0.03 * (1.0 - dolly) + dolly * uSubjDriftMult * sZoomCoef);
         vec2 subjSample = (base - sPivot) / sGrow + sPivot + subjDrift;
         vec4 s = texture2D(uSubj, subjSample);
         float sa = clamp(s.a, 0.0, 1.0);
