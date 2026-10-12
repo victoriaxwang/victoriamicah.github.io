@@ -19,7 +19,7 @@ const noBtn = document.getElementById("no-btn");
 const statusEl = document.getElementById("form-status");
 
 // Fixed RSVP deadline (not computed relative to page-load date).
-const RSVP_DEADLINE = { iso: "2026-10-25", label: "October 25th, 2026" };
+const RSVP_DEADLINE = { iso: "2026-11-01", label: "November 1st, 2026" };
 
 if (deadlineEl) {
   deadlineEl.textContent = `We'd love to have you celebrate with us. Please kindly reply by ${RSVP_DEADLINE.label}.`;
